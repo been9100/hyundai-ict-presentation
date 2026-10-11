@@ -1,0 +1,285 @@
+<title>현대차 ICT 발표자료</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: a dark presentation stage; one 16:9 slide letterboxed in the center, thin chrome at the edges. Single-look by design. */
+  :root {
+    --bg: #0b0e14;
+    --stage: #000000;
+    --fg: #f2f4f8;
+    --muted: #8a93a3;
+    --line: rgba(255,255,255,0.12);
+    --accent: #5b8def;      /* navy-blue, close to the deck's #0F2F61 family but readable on black */
+    --accent-soft: rgba(91,141,239,0.18);
+    --font-ui: "Noto Sans KR", "Apple SD Gothic Neo", "Pretendard", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-ui); overflow: hidden; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .app { position: fixed; inset: 0; display: grid; grid-template-rows: auto 1fr auto; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+  /* top bar */
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; min-height: 44px; }
+  .brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+  .brand b { font-weight: 700; letter-spacing: 0.01em; white-space: nowrap; }
+  .brand span { color: var(--muted); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+  .sections { display: flex; gap: 6px; }
+  .sections button { padding: 6px 12px; border-radius: 999px; color: var(--muted); font-size: 13px; font-weight: 500; border: 1px solid transparent; }
+  .sections button[aria-current="true"] { color: var(--fg); background: var(--accent-soft); border-color: rgba(91,141,239,0.35); }
+  .tools { display: flex; gap: 4px; }
+  .tools button { width: 36px; height: 36px; border-radius: 8px; color: var(--muted); display: grid; place-items: center; }
+  .tools button:hover { color: var(--fg); background: rgba(255,255,255,0.06); }
+  .tools svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* stage */
+  .stage { position: relative; display: grid; place-items: center; min-height: 0; padding: 0 16px; }
+  .frame { position: relative; width: min(100%, calc((100vh - 140px) * 16 / 9)); aspect-ratio: 16 / 9; max-width: 100%; background: var(--stage); border-radius: 6px; overflow: hidden; box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px var(--line); }
+  .frame img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; display: block; opacity: 0; transform: translateX(24px) scale(0.995); transition: opacity 360ms ease, transform 420ms cubic-bezier(.2,.7,.2,1); will-change: opacity, transform; }
+  .frame img.is-active { opacity: 1; transform: none; z-index: 2; }
+  .frame img.is-prev { opacity: 0; transform: translateX(-24px) scale(0.995); z-index: 1; }
+  .frame.back img.is-active { transform: none; }
+  .frame.back img.is-prev { transform: translateX(24px) scale(0.995); }
+  .frame.back img:not(.is-active):not(.is-prev) { transform: translateX(-24px) scale(0.995); }
+  .hit { position: absolute; top: 0; bottom: 0; width: 34%; z-index: 5; cursor: pointer; opacity: 0; transition: opacity 200ms; display: grid; align-items: center; }
+  .hit.left { left: 0; justify-items: start; padding-left: 14px; }
+  .hit.right { right: 0; justify-items: end; padding-right: 14px; }
+  .frame:hover .hit { opacity: 1; }
+  .hit span { width: 44px; height: 44px; border-radius: 50%; background: rgba(0,0,0,0.5); color: #fff; display: grid; place-items: center; backdrop-filter: blur(6px); }
+  .hit svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* bottom bar */
+  .bottom { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; padding: 10px 16px 12px; min-height: 48px; }
+  .caption { color: var(--muted); font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .counter { font-family: var(--font-mono); font-size: 14px; letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
+  .counter em { font-style: normal; color: var(--muted); }
+  .timer { justify-self: end; font-family: var(--font-mono); font-size: 14px; font-variant-numeric: tabular-nums; color: var(--muted); display: flex; align-items: center; gap: 10px; }
+  .timer[hidden] { display: none; }
+  .timer .t { color: var(--fg); }
+  .timer.over .t { color: #ff7a6b; }
+  .timer button { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+  .progress { position: fixed; left: 0; right: 0; bottom: env(safe-area-inset-bottom, 0px); height: 3px; background: rgba(255,255,255,0.06); z-index: 20; }
+  .progress i { display: block; height: 100%; width: 0; background: var(--accent); transition: width 300ms ease; }
+
+  /* overview */
+  .overview { position: fixed; inset: 0; z-index: 30; background: rgba(11,14,20,0.96); backdrop-filter: blur(10px); overflow: auto; padding: 24px 16px 40px; }
+  .overview[hidden] { display: none; }
+  .overview h2 { margin: 8px 0 14px; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin-bottom: 28px; }
+  .thumb { position: relative; aspect-ratio: 16 / 9; border-radius: 6px; overflow: hidden; background: var(--stage); border: 1px solid var(--line); padding: 0; transition: transform 160ms, border-color 160ms; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .thumb:hover { transform: translateY(-2px); border-color: rgba(91,141,239,0.6); }
+  .thumb[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .thumb small { position: absolute; left: 8px; bottom: 6px; font-family: var(--font-mono); font-size: 11px; color: #fff; background: rgba(0,0,0,0.55); padding: 2px 6px; border-radius: 4px; }
+  .overview .close { position: sticky; top: 0; float: right; padding: 8px 12px; border-radius: 8px; color: var(--muted); border: 1px solid var(--line); background: var(--bg); font-size: 13px; }
+
+  /* help */
+  .help { position: fixed; left: 50%; bottom: 64px; transform: translateX(-50%); z-index: 25; background: rgba(20,24,32,0.95); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; font-size: 13px; color: var(--muted); display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; max-width: calc(100% - 32px); }
+  .help[hidden] { display: none; }
+  .help kbd { font-family: var(--font-mono); font-size: 12px; color: var(--fg); background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 4px; }
+
+  @media (max-width: 640px) {
+    .brand span, .sections { display: none; }
+    .bottom { grid-template-columns: auto 1fr; }
+    .caption { display: none; }
+    .timer { justify-self: end; }
+    .frame { width: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .frame img, .progress i, .thumb { transition: none; }
+  }
+</style>
+
+<div class="app" id="app">
+  <header class="top">
+    <div class="brand"><b>이혜빈</b><span>[ICT] UI Design · October 2026</span></div>
+    <nav class="sections" aria-label="섹션">
+      <button type="button" data-goto="0" id="sec-intro">자기소개</button>
+      <button type="button" data-goto="16" id="sec-task">과제</button>
+    </nav>
+    <div class="tools">
+      <button type="button" id="btn-overview" title="전체 보기 (G)" aria-label="전체 보기"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+      <button type="button" id="btn-timer" title="발표 타이머 (T)" aria-label="발표 타이머"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg></button>
+      <button type="button" id="btn-full" title="전체화면 (F)" aria-label="전체화면"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      <button type="button" id="btn-help" title="단축키 (?)" aria-label="단축키"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg></button>
+    </div>
+  </header>
+
+  <main class="stage">
+    <div class="frame" id="frame" aria-live="polite">
+      <div class="hit left" id="hit-prev" role="button" tabindex="0" aria-label="이전 장"><span><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span></div>
+      <div class="hit right" id="hit-next" role="button" tabindex="0" aria-label="다음 장"><span><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></span></div>
+    </div>
+  </main>
+
+  <footer class="bottom">
+    <div class="caption" id="caption"></div>
+    <div class="counter" id="counter"></div>
+    <div class="timer" id="timer" hidden>
+      <span id="timer-label">자기소개 5:00</span>
+      <span class="t" id="timer-value">00:00</span>
+      <button type="button" id="timer-toggle">시작</button>
+      <button type="button" id="timer-reset">리셋</button>
+    </div>
+  </footer>
+</div>
+
+<div class="progress" aria-hidden="true"><i id="bar"></i></div>
+
+<section class="overview" id="overview" hidden aria-label="전체 보기">
+  <button type="button" class="close" id="overview-close">닫기 (Esc)</button>
+  <h2>자기소개 · 16장</h2>
+  <div class="grid" id="grid-intro"></div>
+  <h2>과제 · 24장</h2>
+  <div class="grid" id="grid-task"></div>
+</section>
+
+<div class="help" id="help" hidden>
+  <kbd>→</kbd><span>다음 장 (Space, PgDn, 클릭 오른쪽)</span>
+  <kbd>←</kbd><span>이전 장 (PgUp, 클릭 왼쪽)</span>
+  <kbd>G</kbd><span>전체 보기 / 닫기</span>
+  <kbd>T</kbd><span>발표 타이머 표시, <kbd>S</kbd> 시작·정지</span>
+  <kbd>F</kbd><span>전체화면</span>
+  <kbd>Home</kbd><span>첫 장, <kbd>End</kbd> 마지막 장</span>
+</div>
+
+<script>
+(function () {
+  var INTRO = 16, TASK = 24;
+  var slides = [];
+  for (var i = 1; i <= INTRO; i++) slides.push({ src: 'img/intro-' + String(i).padStart(2, '0') + '.jpg', section: 'intro', n: i });
+  for (var j = 1; j <= TASK; j++) slides.push({ src: 'img/task-' + String(j).padStart(2, '0') + '.jpg', section: 'task', n: j });
+  var total = slides.length;
+
+  var frame = document.getElementById('frame');
+  var counter = document.getElementById('counter');
+  var caption = document.getElementById('caption');
+  var bar = document.getElementById('bar');
+  var overview = document.getElementById('overview');
+  var help = document.getElementById('help');
+  var secIntro = document.getElementById('sec-intro');
+  var secTask = document.getElementById('sec-task');
+
+  var imgs = slides.map(function (s, idx) {
+    var im = document.createElement('img');
+    im.alt = (s.section === 'intro' ? '자기소개 ' : '과제 ') + s.n + '장';
+    im.decoding = 'async';
+    im.loading = 'eager';
+    im.setAttribute('data-src', s.src);
+    frame.insertBefore(im, frame.firstChild);
+    return im;
+  });
+
+  function load(idx) { var im = imgs[idx]; if (im && !im.src) im.src = im.getAttribute('data-src'); }
+
+  var current = -1, prev = -1;
+  function readHash() { var m = /^#s(\d+)$/.exec(location.hash || ''); if (!m) return 0; var n = parseInt(m[1], 10) - 1; return isNaN(n) ? 0 : Math.min(Math.max(n, 0), total - 1); }
+
+  function go(idx, fromHash) {
+    idx = Math.min(Math.max(idx, 0), total - 1);
+    if (idx === current) return;
+    frame.classList.toggle('back', idx < current);
+    prev = current; current = idx;
+    load(idx); load(idx + 1); load(idx - 1); load(idx + 2);
+    imgs.forEach(function (im, k) { im.classList.toggle('is-active', k === idx); im.classList.toggle('is-prev', k === prev); });
+    var s = slides[idx];
+    counter.innerHTML = String(idx + 1).padStart(2, '0') + ' <em>/ ' + total + '</em>';
+    caption.textContent = (s.section === 'intro' ? '자기소개 ' : '과제 ') + String(s.n).padStart(2, '0') + ' / ' + (s.section === 'intro' ? INTRO : TASK);
+    bar.style.width = ((idx + 1) / total * 100) + '%';
+    secIntro.setAttribute('aria-current', s.section === 'intro' ? 'true' : 'false');
+    secTask.setAttribute('aria-current', s.section === 'task' ? 'true' : 'false');
+    document.title = '현대차 ICT 발표자료 · ' + (idx + 1) + '/' + total;
+    if (!fromHash) { try { history.replaceState(null, '', '#s' + (idx + 1)); } catch (e) {} }
+    var thumbs = overview.querySelectorAll('.thumb');
+    thumbs.forEach(function (t, k) { t.setAttribute('aria-current', k === idx ? 'true' : 'false'); });
+    try { localStorage.setItem('deck-last', String(idx)); } catch (e) {}
+  }
+  function next() { go(current + 1); }
+  function back() { go(current - 1); }
+
+  // overview grid
+  function buildGrid() {
+    var gi = document.getElementById('grid-intro'), gt = document.getElementById('grid-task');
+    slides.forEach(function (s, idx) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'thumb';
+      var im = document.createElement('img'); im.loading = 'lazy'; im.decoding = 'async'; im.src = s.src; im.alt = '';
+      var small = document.createElement('small'); small.textContent = String(idx + 1).padStart(2, '0');
+      b.appendChild(im); b.appendChild(small);
+      b.addEventListener('click', function () { go(idx); closeOverview(); });
+      (s.section === 'intro' ? gi : gt).appendChild(b);
+    });
+  }
+  function openOverview() { overview.hidden = false; help.hidden = true; var cur = overview.querySelector('.thumb[aria-current="true"]'); if (cur) cur.scrollIntoView({ block: 'center' }); }
+  function closeOverview() { overview.hidden = true; }
+  function toggleOverview() { overview.hidden ? openOverview() : closeOverview(); }
+
+  // timer
+  var timer = document.getElementById('timer'), tval = document.getElementById('timer-value'), tlabel = document.getElementById('timer-label');
+  var ttoggle = document.getElementById('timer-toggle'), treset = document.getElementById('timer-reset');
+  var running = false, elapsed = 0, startAt = 0, tick = null;
+  function fmt(ms) { var s = Math.floor(ms / 1000); return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }
+  function limitFor() { return slides[current].section === 'intro' ? 5 * 60 * 1000 : 10 * 60 * 1000; }
+  function render() { var e = elapsed + (running ? Date.now() - startAt : 0); tval.textContent = fmt(e); tlabel.textContent = (slides[current].section === 'intro' ? '자기소개 5:00' : '과제 10:00'); timer.classList.toggle('over', e > limitFor()); }
+  function startTimer() { if (running) return; running = true; startAt = Date.now(); ttoggle.textContent = '정지'; tick = setInterval(render, 250); render(); }
+  function stopTimer() { if (!running) return; elapsed += Date.now() - startAt; running = false; ttoggle.textContent = '시작'; clearInterval(tick); render(); }
+  function toggleTimer() { running ? stopTimer() : startTimer(); }
+  function resetTimer() { stopTimer(); elapsed = 0; render(); }
+  ttoggle.addEventListener('click', toggleTimer);
+  treset.addEventListener('click', resetTimer);
+  document.getElementById('btn-timer').addEventListener('click', function () { timer.hidden = !timer.hidden; render(); });
+
+  // fullscreen
+  function toggleFull() {
+    var el = document.documentElement;
+    try {
+      if (!document.fullscreenElement) { var p = el.requestFullscreen && el.requestFullscreen(); if (p && p.catch) p.catch(function () {}); }
+      else if (document.exitFullscreen) document.exitFullscreen();
+    } catch (e) {}
+  }
+
+  // wiring
+  document.getElementById('hit-next').addEventListener('click', next);
+  document.getElementById('hit-prev').addEventListener('click', back);
+  document.getElementById('btn-overview').addEventListener('click', toggleOverview);
+  document.getElementById('overview-close').addEventListener('click', closeOverview);
+  document.getElementById('btn-full').addEventListener('click', toggleFull);
+  document.getElementById('btn-help').addEventListener('click', function () { help.hidden = !help.hidden; });
+  secIntro.addEventListener('click', function () { go(0); closeOverview(); });
+  secTask.addEventListener('click', function () { go(INTRO); closeOverview(); });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var k = e.key;
+    if (k === 'ArrowRight' || k === ' ' || k === 'PageDown' || k === 'Enter') { e.preventDefault(); if (!overview.hidden) return; next(); }
+    else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'Backspace') { e.preventDefault(); if (!overview.hidden) return; back(); }
+    else if (k === 'Home') { e.preventDefault(); go(0); }
+    else if (k === 'End') { e.preventDefault(); go(total - 1); }
+    else if (k === 'g' || k === 'G') { toggleOverview(); }
+    else if (k === 'Escape') { closeOverview(); help.hidden = true; }
+    else if (k === 'f' || k === 'F') { toggleFull(); }
+    else if (k === 't' || k === 'T') { timer.hidden = !timer.hidden; render(); }
+    else if (k === 's' || k === 'S') { timer.hidden = false; toggleTimer(); }
+    else if (k === '?') { help.hidden = !help.hidden; }
+  });
+
+  // swipe
+  var tx = null, ty = null;
+  frame.addEventListener('touchstart', function (e) { var t = e.touches[0]; tx = t.clientX; ty = t.clientY; }, { passive: true });
+  frame.addEventListener('touchend', function (e) {
+    if (tx === null) return; var t = e.changedTouches[0]; var dx = t.clientX - tx, dy = t.clientY - ty; tx = ty = null;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) { dx < 0 ? next() : back(); }
+  }, { passive: true });
+
+  window.addEventListener('hashchange', function () { go(readHash(), true); });
+
+  buildGrid();
+  var start = 0;
+  if (location.hash) start = readHash();
+  else { try { var last = parseInt(localStorage.getItem('deck-last'), 10); if (!isNaN(last)) start = Math.min(Math.max(last, 0), total - 1); } catch (e) {} }
+  go(start, true);
+  // warm the rest in the background
+  var w = 0; (function warm() { if (w >= total) return; load(w++); setTimeout(warm, 120); })();
+})();
+</script>
